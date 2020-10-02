@@ -42,6 +42,7 @@ if __name__ == "__main__":
     parser.add_argument('--repeat', type=int, default=1)
     parser.add_argument('--batchsize', type=int, default=32)
     parser.add_argument('--steps_per_epoch', type=int, default=1)
+    parser.add_argument('--device', type=str, default='CPU:0')
     parser.add_argument('--summary', action='store_true')
 
     args = parser.parse_args()
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     (x_train, y_train, x_test, y_test) = load_input_data()
 
     try:
-        with tf.device('/CPU:0'):
+        with tf.device("/{}".format(args.device)):
             times = []
 
             # Warm up

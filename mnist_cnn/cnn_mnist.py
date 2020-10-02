@@ -6,6 +6,20 @@ from tensorflow.keras.utils import to_categorical
 import time
 
 
+class MeasureTimeCallback(keras.callbacks.Callback):
+
+    def __init__(self):
+        self.times = []
+        self.t_start = 0.0
+
+    def on_train_begin(self, logs=None):
+        self.t_start = time.time()
+
+    def on_train_end(self, logs=None):
+        t = time.time()
+        self.times.append(t - self.t_start)
+
+
 def load_input_data():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
@@ -44,11 +58,19 @@ if __name__ == "__main__":
     parser.add_argument('--steps_per_epoch', type=int, default=1)
     parser.add_argument('--device', type=str, default='CPU:0')
     parser.add_argument('--summary', action='store_true')
+    parser.add_argument('--convert-to-onnx', action='store_true')
 
     args = parser.parse_args()
 
     if args.summary:
         model.summary()
+        exit(0)
+
+    if args.convert_to_onnx:
+        import keras2onnx
+        onnx_model = keras2onnx.convert_keras(model, name='mnist_cnn')
+        keras2onnx.save_model(onnx_model, 'model.onnx')
+        model.save('keras_model')
         exit(0)
 
     batchsize = args.batchsize
@@ -62,7 +84,6 @@ if __name__ == "__main__":
 
     try:
         with tf.device("/{}".format(args.device)):
-            times = []
 
             # Warm up
             model.fit(x_train,
@@ -73,17 +94,15 @@ if __name__ == "__main__":
                       verbose=0)
 
             for _ in range(repeat):
-                s = time.time()
                 model.fit(x_train,
                           y_train,
                           steps_per_epoch=steps,
                           batch_size=batchsize,
                           epochs=epochs,
-                          verbose=0)
-                e = time.time()
-                times.append(e - s)
+                          verbose=0,
+                          callbacks=[callback])
 
-        print("{},".format(times))
+        print("{},".format(callback.times))
 
     except RuntimeError as e:
         print(e)

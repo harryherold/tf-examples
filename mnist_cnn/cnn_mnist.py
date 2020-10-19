@@ -11,14 +11,19 @@ class MeasureTimeCallback(keras.callbacks.Callback):
     def __init__(self):
         self.times = []
         self.t_start = 0.0
-
-    def on_train_begin(self, logs=None):
-        self.t_start = time.time()
+        self.t_batch = 0.0
 
     def on_train_end(self, logs=None):
-        t = time.time()
-        self.times.append(t - self.t_start)
+        self.times.append(self.t_batch)
+        self.t_batch = 0.0
+        self.t_start = 0.0
 
+    def on_batch_begin(self, batch, logs=None):
+        self.t_start = time.time()
+
+    def on_batch_end(self, batch, logs=None):
+        t_end = time.time()
+        self.t_batch += t_end - self.t_start
 
 def load_input_data():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
